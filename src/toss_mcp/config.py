@@ -22,7 +22,9 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="TOSS_",
         env_file=".env",
-        env_file_encoding="utf-8",
+        # utf-8-sig, not utf-8: Windows editors and PowerShell's `-Encoding
+        # utf8` write a BOM, which would otherwise corrupt the first key name.
+        env_file_encoding="utf-8-sig",
         extra="ignore",
     )
 

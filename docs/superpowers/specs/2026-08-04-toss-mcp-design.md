@@ -277,12 +277,26 @@ claude mcp add --scope user toss -- uv --directory D:\workspace\repositories\tos
 
 자격증명은 `toss-mcp/.env` 에 두거나 MCP 설정의 `env` 블록에 넣는다. `.env` 는 커밋하지 않는다.
 
-## 구현 시 확인할 항목
+## 구현 결과 (2026-08-04)
 
-- `FinanceDataReader` 각 시장의 반환 컬럼명 — 버전에 따라 다르므로 실제 값을 보고 매핑한다.
-  후보 컬럼명을 순서대로 찾는 방식으로 구현해 컬럼명 변화에 견디게 한다.
-- 기존 `D:\workspace\repositories\toss\.env` 의 `API_KEY`/`SECRET_KEY` 를 재사용할지,
-  이 레포에 별도 `.env` 를 둘지 사용자에게 확인한다.
+전 항목 구현·검증 완료. 도구 13개, 네트워크 없는 테스트 152개 + 실 API 스모크 14개 통과.
+
+구현 중 확정된 사항:
+
+- **FDR 컬럼** — KRX 는 `Code`/`Name`/`Market`(KOSPI·KOSDAQ), 미국(NASDAQ·NYSE·AMEX)은
+  `Symbol`/`Name`. KRX 에는 영문명 컬럼이 없다. 컬럼명 변화에 견디도록 후보 목록을 순서대로
+  탐색하는 방식으로 구현했다.
+- **자격증명** — 기존 `toss/.env` 의 `API_KEY`/`SECRET_KEY` 를 `TOSS_CLIENT_ID`/
+  `TOSS_CLIENT_SECRET` 로 매핑해 `toss-mcp/.env` 에 복사했다 (gitignore 확인 완료).
+- **MCP SDK** — `mcp` 2.0 에서 `mcp.server.fastmcp.FastMCP` 경로가 사라졌다.
+  `mcp.server.mcpserver.MCPServer` 를 사용한다. 도구 데코레이터 API 는 동일하다.
+- **구조화 출력** — 도구 반환 타입을 `Any` 로 두면 `structured_content` 가 비어 나온다.
+  `dict[str, Any]` 로 명시해야 한다.
+- **읽기 전용 표시** — 전 도구에 `ToolAnnotations(read_only_hint=True)` 를 붙였다.
+- **`.env` 인코딩** — Windows/PowerShell 이 BOM 을 붙이므로 `env_file_encoding` 은
+  `utf-8` 이 아니라 `utf-8-sig` 여야 한다. 아니면 첫 키 이름이 깨진다.
+- **신규 rate limit 그룹** — 라이브 스펙이 `RANKING`, `MARKET_INDICATOR` 를 쓰지만 한도를
+  공개하지 않는다. 보수적으로 5/s 를 적용했다.
 
 ## 해소된 항목 (2026-08-04, 라이브 스펙 v1.2.9 확인)
 

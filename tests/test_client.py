@@ -134,9 +134,11 @@ async def test_backs_off_exponentially_without_retry_after(client):
     )
 
     assert await client.get("/api/v1/prices", "MARKET_DATA") == ["ok"]
+    # delay = 2**attempt * (1 + random()), so attempt 0 -> [1,2), attempt 1 -> [2,4)
     assert len(client.slept) == 2
     assert 1.0 <= client.slept[0] < 2.0, "1s base plus jitter"
-    assert 2.0 <= client.slept[1] < 3.0, "2s base plus jitter"
+    assert 2.0 <= client.slept[1] < 4.0, "2s base plus jitter"
+    assert client.slept[1] > client.slept[0], "backoff must grow"
 
 
 @respx.mock
