@@ -17,6 +17,10 @@ GROUP_LIMITS: dict[str, int] = {
     "MARKET_DATA_CHART": 5,
     "STOCK": 5,
     "MARKET_INFO": 3,
+    # The spec names these groups but does not publish their limits; the
+    # conservative default keeps us inside whatever they turn out to be.
+    "RANKING": 5,
+    "MARKET_INDICATOR": 5,
 }
 
 # Used for groups Toss adds after this was written.

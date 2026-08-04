@@ -92,4 +92,6 @@ def test_known_groups_match_the_published_limits():
         "MARKET_DATA_CHART": 5,
         "STOCK": 5,
         "MARKET_INFO": 3,
+        "RANKING": 5,
+        "MARKET_INDICATOR": 5,
     }
