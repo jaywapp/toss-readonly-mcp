@@ -1,0 +1,20 @@
+{
+  "name": "toss-readonly-mcp",
+  "interface": {
+    "displayName": "Toss Read-only MCP"
+  },
+  "plugins": [
+    {
+      "name": "toss-mcp",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

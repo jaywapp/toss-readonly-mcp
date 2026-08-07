@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "toss": {
+      "command": "uv",
+      "args": [
+        "run",
+        "toss-mcp"
+      ],
+      "cwd": ".",
+      "env_vars": [
+        "TOSS_CLIENT_ID",
+        "TOSS_CLIENT_SECRET"
+      ],
+      "startup_timeout_sec": 120
+    }
+  }
+}

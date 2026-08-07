@@ -1,0 +1,39 @@
+{
+  "name": "toss-mcp",
+  "version": "0.1.0",
+  "description": "토스증권 Open API 를 읽기 전용 MCP 도구로 노출한다. 국내·미국 주식의 시세, 종목 정보, 환율·장 운영 시간, 랭킹·지표를 조회한다. 계좌 조회와 주문은 제공하지 않는다.",
+  "author": {
+    "name": "jaywapp"
+  },
+  "homepage": "https://github.com/jaywapp/toss-readonly-mcp",
+  "repository": "https://github.com/jaywapp/toss-readonly-mcp",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "toss",
+    "stock",
+    "market-data",
+    "korea",
+    "read-only"
+  ],
+  "mcpServers": "./.codex.mcp.json",
+  "interface": {
+    "displayName": "Toss MCP",
+    "shortDescription": "토스증권 국내·미국 주식 시세 조회 (읽기 전용)",
+    "longDescription": "토스증권 Open API 로 국내·미국 주식의 현재가·호가·체결·캔들, 종목 정보와 매수 유의사항, 환율과 장 운영 시간, 랭킹과 시장 지표를 조회합니다. 종목명 검색은 상장 종목 마스터를 로컬에 캐시해 제공합니다. 계좌 조회와 주문은 구현하지 않아 부수효과가 없습니다.",
+    "developerName": "jaywapp",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read"
+    ],
+    "websiteURL": "https://github.com/jaywapp/toss-readonly-mcp",
+    "defaultPrompt": [
+      "삼성전자 현재가 알려줘.",
+      "오늘 거래대금 상위 10종목 보여줘.",
+      "엔비디아 최근 30일 일봉 흐름 요약해줘."
+    ],
+    "brandColor": "#3182F6",
+    "screenshots": []
+  }
+}

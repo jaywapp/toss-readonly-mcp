@@ -29,6 +29,11 @@ LLM 이 국내·미국 주식의 시세, 종목 정보, 환율·장 운영 시�
 
 ## 2. 설치
 
+Claude Code 와 Codex 양쪽에서 같은 저장소를 플러그인으로 설치할 수 있습니다.
+자격증명을 받는 방식만 다릅니다.
+
+### Claude Code
+
 ```
 /plugin marketplace add jaywapp/toss-readonly-mcp
 /plugin install toss-mcp@toss-readonly-mcp
@@ -38,17 +43,37 @@ LLM 이 국내·미국 주식의 시세, 종목 정보, 환율·장 운영 시�
 두 값 모두 민감 정보로 처리되어 `settings.json` 이 아닌 보안 저장소
 (macOS Keychain, 그 외 플랫폼은 `~/.claude/.credentials.json`)에 저장됩니다.
 
-첫 실행 때 `uv` 가 의존성을 설치하느라 십여 초 걸립니다. 가상환경은
-`${CLAUDE_PLUGIN_DATA}/venv` 에 만들어져 플러그인을 업데이트해도 재사용됩니다.
+가상환경은 `${CLAUDE_PLUGIN_DATA}/venv` 에 만들어져 플러그인을 업데이트해도 재사용됩니다.
 
 설정을 바꾸려면 `/plugin` → toss-mcp → Configure 를 사용합니다.
 
-### 잘 붙었는지 확인
+### Codex
+
+Codex 에는 플러그인 설정값을 묻는 절차가 없습니다. **자격증명을 먼저 환경변수로 등록**한 뒤 설치합니다.
+
+```powershell
+[Environment]::SetEnvironmentVariable('TOSS_CLIENT_ID', '<client_id>', 'User')
+[Environment]::SetEnvironmentVariable('TOSS_CLIENT_SECRET', '<client_secret>', 'User')
+# 새 터미널을 열어 반영
+
+codex plugin marketplace add jaywapp/toss-readonly-mcp
+codex plugin add toss-mcp@toss-readonly-mcp
+```
+
+`.codex.mcp.json` 의 `env_vars` 가 위 두 변수를 서버 프로세스로 전달합니다.
+등록됐는지는 `codex mcp list` 의 `toss` 행에서 확인할 수 있습니다.
+
+Codex 는 플러그인을 `~/.codex/plugins/cache/` 로 복사해 실행하며, 여기에 가상환경이 생깁니다.
+Claude Code 와 달리 업데이트하면 다시 만들어집니다.
+
+### 첫 실행
+
+두 플랫폼 모두 첫 호출 때 `uv` 가 의존성을 설치하느라 십여 초 걸립니다.
 
 새 세션에서 "삼성전자 주가 알려줘" 라고 물어보세요.
 `search_symbol` → `get_price` 순으로 호출되면 정상입니다.
 
-`TOSS_CLIENT_ID가 설정되지 않았습니다` 가 뜨면 위 설정값이 비어 있는 것이고,
+`TOSS_CLIENT_ID가 설정되지 않았습니다` 가 뜨면 자격증명이 비어 있는 것이고,
 403 이 뜨면 허용 IP 등록(1번 3단계)이 안 된 것입니다.
 
 ---
@@ -110,8 +135,8 @@ LLM 이 국내·미국 주식의 시세, 종목 정보, 환율·장 운영 시�
 
 | 변수 | 기본값 | 용도 |
 |------|--------|------|
-| `TOSS_CLIENT_ID` | — | OAuth client_id (플러그인 설정에서 주입) |
-| `TOSS_CLIENT_SECRET` | — | OAuth client_secret (플러그인 설정에서 주입) |
+| `TOSS_CLIENT_ID` | — | OAuth client_id (Claude Code 는 플러그인 설정, Codex 는 환경변수) |
+| `TOSS_CLIENT_SECRET` | — | OAuth client_secret (동일) |
 | `TOSS_API_BASE_URL` | `https://openapi.tossinvest.com` | 엔드포인트 |
 | `TOSS_HTTP_TIMEOUT` | `10` | 요청 타임아웃(초) |
 | `TOSS_CACHE_DIR` | `~/.cache/toss-mcp` | 종목 마스터 SQLite 위치 |
