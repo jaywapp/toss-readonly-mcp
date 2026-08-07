@@ -1,0 +1,38 @@
+[project]
+name = "toss-mcp"
+version = "0.1.0"
+description = "Read-only MCP server for Toss Securities Open API market data"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "mcp>=1.2.0",
+    "httpx>=0.27",
+    "pydantic>=2.6",
+    "pydantic-settings>=2.2",
+    "finance-datareader>=0.9.50",
+]
+
+[project.scripts]
+toss-mcp = "toss_mcp.server:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "respx>=0.21",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/toss_mcp"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "smoke: hits the live Toss API; requires credentials",
+]
+filterwarnings = ["ignore::DeprecationWarning"]

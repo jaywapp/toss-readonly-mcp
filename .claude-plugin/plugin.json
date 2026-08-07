@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "toss-mcp",
+  "version": "0.1.0",
+  "description": "토스증권 Open API 를 읽기 전용 MCP 도구로 노출한다. 국내·미국 주식의 시세, 종목 정보, 환율·장 운영 시간, 랭킹·지표를 조회한다. 계좌 조회와 주문은 제공하지 않는다.",
+  "author": {
+    "name": "jaywapp"
+  },
+  "homepage": "https://github.com/jaywapp/toss-readonly-mcp",
+  "repository": "https://github.com/jaywapp/toss-readonly-mcp",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "toss",
+    "stock",
+    "market-data",
+    "korea",
+    "read-only"
+  ],
+  "mcpServers": "./.mcp.json",
+  "userConfig": {
+    "client_id": {
+      "type": "string",
+      "title": "토스증권 client_id",
+      "description": "토스증권 WTS > 설정 > Open API 에서 발급한 client_id",
+      "sensitive": true,
+      "required": true
+    },
+    "client_secret": {
+      "type": "string",
+      "title": "토스증권 client_secret",
+      "description": "토스증권 WTS > 설정 > Open API 에서 발급한 client_secret",
+      "sensitive": true,
+      "required": true
+    }
+  }
+}

@@ -16,12 +16,16 @@
 - 시세 — 현재가, 호가, 체결, 상/하한가, 캔들(OHLCV)
 - 종목 정보 — 종목 기본 정보, 매수 유의사항
 - 시장 정보 — KRW↔USD 환율, 국내·미국 장 운영 시간
+- 랭킹 — 상승률/하락률/거래대금/거래량 상위
+- 시장 지표 — 코스피·코스닥 등 지수 현재가
 - 종목 검색 — 종목명 → 심볼 변환 (토스 API 에 없는 기능이라 자체 구현)
 
 제외:
 
 - 계좌·자산 조회 (계좌 목록, 보유 주식, 매수가능금액)
-- 주문 (생성·정정·취소)
+- 주문 (생성·정정·취소, 조건부 주문)
+- 지수 캔들 (`/market-indicators/{symbol}/candles`), 투자자별 매매대금
+  (`/market-indicators/{symbol}/investor-trading`) — 쓰임새 대비 도구 수만 늘린다
 
 제외 이유: `X-Tossinvest-Account` 헤더가 필요하고 자산 정보가 LLM 컨텍스트에 유입된다.
 주문은 AI 가 실제 매매를 실행할 수 있게 되어 사고 위험이 크다.
@@ -29,8 +33,10 @@
 
 ## 참조
 
-- API 문서: `D:\workspace\repositories\toss\` (비공식 한국어 레퍼런스, 스펙 `v1.1.5`)
 - 라이브 OpenAPI 스펙: <https://openapi.tossinvest.com/openapi-docs/latest/openapi.json>
+  — **이것이 단일 진실 공급원(v1.2.9 기준으로 구현)**
+- 참고용 한국어 문서: `D:\workspace\repositories\toss\` — 스펙 `v1.1.5` 기준이라 최신이 아니다.
+  랭킹·시장 지표 엔드포인트가 빠져 있고, 값이 다를 경우 라이브 스펙을 따른다.
 - Base URL: `https://openapi.tossinvest.com`
 
 ## 스택
@@ -68,7 +74,8 @@ toss-mcp/
 │       ├── symbols.py        # search_symbol, refresh_symbols
 │       ├── market_data.py    # 시세 도구
 │       ├── stock_info.py     # 종목 정보 도구
-│       └── market_info.py    # 환율·장 운영 도구
+│       ├── market_info.py    # 환율·장 운영 도구
+│       └── rankings.py       # 랭킹·시장 지표 도구
 └── tests/
 ```
 
@@ -186,7 +193,7 @@ FDR 의 반환 컬럼명은 버전에 따라 다르므로 구현 시 실제 컬�
 | `get_orderbook` | `symbol` | `MARKET_DATA` |
 | `get_trades` | `symbol`, `count?` (최대 50) | `MARKET_DATA` |
 | `get_price_limits` | `symbol` | `MARKET_DATA` |
-| `get_candles` | `symbol`, `interval`, `count?` (최대 200), `before?`, `adjusted?` | `MARKET_DATA_CHART` |
+| `get_candles` | `symbol`, `interval` (`1m`/`1d`), `count?` (기본 100, 최대 200), `before?`, `adjusted?` (기본 true) | `MARKET_DATA_CHART` |
 
 `get_price` 응답에는 로컬 종목 마스터에서 찾은 **종목명을 붙여** 반환한다 (API 추가 호출 없음).
 마스터에 없는 심볼이면 이름 없이 반환하고 실패로 처리하지 않는다.
@@ -209,6 +216,18 @@ FDR 의 반환 컬럼명은 버전에 따라 다르므로 구현 시 실제 컬�
 |------|----------|-----------------|
 | `get_exchange_rate` | `base='USD'`, `quote='KRW'`, `date_time?` | `MARKET_INFO` |
 | `get_market_calendar` | `country` (`KR`/`US`), `date?` | `MARKET_INFO` |
+
+### 랭킹·시장 지표
+
+| 도구 | 파라미터 | Rate limit 그룹 |
+|------|----------|-----------------|
+| `get_rankings` | `type`, `market_country`, `duration`, `count=20`, `exclude_investment_caution=False` | `MARKET_DATA` |
+| `get_market_indicators` | `symbols` | `MARKET_DATA` |
+
+`get_rankings` 의 `type`: `TOP_GAINERS`, `TOP_LOSERS`, `MARKET_TRADING_AMOUNT`,
+`MARKET_TRADING_VOLUME`, `TOSS_SECURITIES_TRADING_AMOUNT`, `TOSS_SECURITIES_TRADING_VOLUME`.
+`duration`: `realtime`, `1d`, `1w`, `1mo`, `3mo`, `6mo`, `1y`. API 기본 count 는 100 이지만
+도구 기본값은 **20** 으로 낮춘다 — 100건은 LLM 컨텍스트를 크게 소모한다.
 
 ### 응답 크기
 
@@ -258,9 +277,32 @@ claude mcp add --scope user toss -- uv --directory D:\workspace\repositories\tos
 
 자격증명은 `toss-mcp/.env` 에 두거나 MCP 설정의 `env` 블록에 넣는다. `.env` 는 커밋하지 않는다.
 
-## 구현 시 확인할 항목
+## 구현 결과 (2026-08-04)
 
-- `get_candles` 의 `interval` enum 값 — 로컬 문서에 누락. 라이브 OpenAPI 스펙에서 확인한다.
-- `FinanceDataReader` 각 시장의 반환 컬럼명 — 버전에 따라 다르므로 실제 값을 보고 매핑한다.
-- 기존 `D:\workspace\repositories\toss\.env` 의 `API_KEY`/`SECRET_KEY` 를 재사용할지,
-  이 레포에 별도 `.env` 를 둘지 사용자에게 확인한다.
+전 항목 구현·검증 완료. 도구 13개, 네트워크 없는 테스트 152개 + 실 API 스모크 14개 통과.
+
+구현 중 확정된 사항:
+
+- **FDR 컬럼** — KRX 는 `Code`/`Name`/`Market`(KOSPI·KOSDAQ), 미국(NASDAQ·NYSE·AMEX)은
+  `Symbol`/`Name`. KRX 에는 영문명 컬럼이 없다. 컬럼명 변화에 견디도록 후보 목록을 순서대로
+  탐색하는 방식으로 구현했다.
+- **자격증명** — 기존 `toss/.env` 의 `API_KEY`/`SECRET_KEY` 를 `TOSS_CLIENT_ID`/
+  `TOSS_CLIENT_SECRET` 로 매핑해 `toss-mcp/.env` 에 복사했다 (gitignore 확인 완료).
+- **MCP SDK** — `mcp` 2.0 에서 `mcp.server.fastmcp.FastMCP` 경로가 사라졌다.
+  `mcp.server.mcpserver.MCPServer` 를 사용한다. 도구 데코레이터 API 는 동일하다.
+- **구조화 출력** — 도구 반환 타입을 `Any` 로 두면 `structured_content` 가 비어 나온다.
+  `dict[str, Any]` 로 명시해야 한다.
+- **읽기 전용 표시** — 전 도구에 `ToolAnnotations(read_only_hint=True)` 를 붙였다.
+- **`.env` 인코딩** — Windows/PowerShell 이 BOM 을 붙이므로 `env_file_encoding` 은
+  `utf-8` 이 아니라 `utf-8-sig` 여야 한다. 아니면 첫 키 이름이 깨진다.
+- **신규 rate limit 그룹** — 라이브 스펙이 `RANKING`, `MARKET_INDICATOR` 를 쓰지만 한도를
+  공개하지 않는다. 보수적으로 5/s 를 적용했다.
+
+## 해소된 항목 (2026-08-04, 라이브 스펙 v1.2.9 확인)
+
+- `get_candles` 의 `interval` = `"1m"` | `"1d"` 두 개뿐. `count` 기본 100 / 최대 200,
+  `adjusted` 기본 `true`.
+- `PriceResponse` 는 v1.2.9 에서도 `symbol`, `timestamp`, `lastPrice`, `currency` 뿐이다.
+  등락률·전일 종가가 없으므로 `include_change` 설계가 그대로 유효하다.
+- 종목명 검색 엔드포인트는 v1.2.9 에도 없다. 로컬 종목 마스터 방식이 그대로 유효하다.
+- `uv` 는 이 PC 에 설치되어 있지 않다. `pip install uv` 로 설치한 뒤 사용한다.
