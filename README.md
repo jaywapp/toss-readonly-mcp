@@ -1,45 +1,59 @@
 # toss-mcp
 
-토스증권 Open API 를 MCP 도구로 노출하는 **읽기 전용** 서버입니다.
+토스증권 Open API 를 MCP 도구로 노출하는 **읽기 전용** Claude Code 플러그인입니다.
 LLM 이 국내·미국 주식의 시세, 종목 정보, 환율·장 운영 시간, 랭킹을 조회할 수 있습니다.
 
 계좌 조회와 주문(생성·정정·취소)은 **구현하지 않았습니다**. 이 서버는 어떤 부수효과도 일으키지 않습니다.
 
-## 설치
+---
 
-```powershell
-git clone <repo> toss-mcp
-cd toss-mcp
-uv sync
+## 1. 토스증권 Open API 신청
+
+플러그인을 설치하기 전에 API 자격증명부터 발급받아야 합니다.
+
+| 단계 | 내용 |
+|------|------|
+| 1 | **토스증권 계좌**가 있어야 합니다. 없으면 토스 앱에서 먼저 개설합니다. |
+| 2 | [토스증권 WTS](https://tossinvest.com) 에 로그인 → **설정 > Open API** 에서 `client_id` / `client_secret` 을 발급받습니다. |
+| 3 | 같은 화면 하단 **허용 IP 관리**에서 API 를 호출할 IP 를 등록합니다. |
+| 4 | 로컬에 [`uv`](https://docs.astral.sh/uv/) 가 설치되어 있어야 합니다 (`python -m pip install uv`). |
+
+> **3번을 건너뛰면 모든 호출이 403 으로 차단됩니다.** 등록된 허용 IP 목록에 없는 IP 에서의 요청은
+> 토스 측에서 거부합니다. 집·회사 등 실행할 환경의 공인 IP 를 등록하세요.
+> ISP 가 IP 를 바꾸면 다시 등록해야 합니다.
+
+별도의 심사나 승인 대기는 없습니다. 발급 즉시 사용할 수 있습니다.
+`client_secret` 은 발급 화면을 벗어나면 다시 볼 수 없으니 그 자리에서 보관하세요.
+
+---
+
+## 2. 설치
+
+```
+/plugin marketplace add jaywapp/toss-readonly-mcp
+/plugin install toss-mcp@toss-readonly-mcp
 ```
 
-`uv` 가 없으면 `python -m pip install uv` 로 설치합니다.
+플러그인을 활성화하면 `client_id` / `client_secret` 을 묻는 입력창이 뜹니다.
+두 값 모두 민감 정보로 처리되어 `settings.json` 이 아닌 보안 저장소
+(macOS Keychain, 그 외 플랫폼은 `~/.claude/.credentials.json`)에 저장됩니다.
 
-## 설정
+첫 실행 때 `uv` 가 의존성을 설치하느라 십여 초 걸립니다. 가상환경은
+`${CLAUDE_PLUGIN_DATA}/venv` 에 만들어져 플러그인을 업데이트해도 재사용됩니다.
 
-`.env.example` 을 `.env` 로 복사하고 자격증명을 채웁니다.
-`client_id` / `client_secret` 은 토스증권 WTS 로그인 후 **설정 > Open API** 에서 발급합니다.
+설정을 바꾸려면 `/plugin` → toss-mcp → Configure 를 사용합니다.
 
-| 변수 | 필수 | 기본값 | 용도 |
-|------|------|--------|------|
-| `TOSS_CLIENT_ID` | ✅ | — | OAuth client_id |
-| `TOSS_CLIENT_SECRET` | ✅ | — | OAuth client_secret |
-| `TOSS_API_BASE_URL` | | `https://openapi.tossinvest.com` | 엔드포인트 |
-| `TOSS_HTTP_TIMEOUT` | | `10` | 요청 타임아웃(초) |
-| `TOSS_CACHE_DIR` | | `~/.cache/toss-mcp` | 종목 마스터 SQLite 위치 |
-| `TOSS_SYMBOL_TTL_DAYS` | | `7` | 종목 마스터 자동 갱신 주기 |
-| `TOSS_SYMBOL_MARKETS` | | `KRX,NASDAQ,NYSE,AMEX` | 종목 마스터 수집 대상 |
-| `TOSS_LOG_LEVEL` | | `INFO` | 로그 레벨 |
+### 잘 붙었는지 확인
 
-`.env` 는 커밋하지 마세요. 자격증명은 MCP 설정의 `env` 블록에 넣어도 됩니다.
+새 세션에서 "삼성전자 주가 알려줘" 라고 물어보세요.
+`search_symbol` → `get_price` 순으로 호출되면 정상입니다.
 
-## 등록
+`TOSS_CLIENT_ID가 설정되지 않았습니다` 가 뜨면 위 설정값이 비어 있는 것이고,
+403 이 뜨면 허용 IP 등록(1번 3단계)이 안 된 것입니다.
 
-```powershell
-claude mcp add --scope user toss -- uv --directory D:\workspace\repositories\toss-mcp run toss-mcp
-```
+---
 
-## 도구
+## 3. 도구
 
 ### 종목 검색
 
@@ -87,15 +101,61 @@ claude mcp add --scope user toss -- uv --directory D:\workspace\repositories\tos
 | `get_rankings` | 상승률·하락률·거래대금·거래량 상위 |
 | `get_market_indicators` | 코스피·코스닥 등 시장 지표 현재가 |
 
-## 개발
+---
+
+## 4. 설정값
+
+플러그인 설정으로 노출되는 것은 자격증명 두 개뿐입니다. 나머지는 환경변수로 조정합니다
+(기본값 그대로 두어도 동작합니다).
+
+| 변수 | 기본값 | 용도 |
+|------|--------|------|
+| `TOSS_CLIENT_ID` | — | OAuth client_id (플러그인 설정에서 주입) |
+| `TOSS_CLIENT_SECRET` | — | OAuth client_secret (플러그인 설정에서 주입) |
+| `TOSS_API_BASE_URL` | `https://openapi.tossinvest.com` | 엔드포인트 |
+| `TOSS_HTTP_TIMEOUT` | `10` | 요청 타임아웃(초) |
+| `TOSS_CACHE_DIR` | `~/.cache/toss-mcp` | 종목 마스터 SQLite 위치 |
+| `TOSS_SYMBOL_TTL_DAYS` | `7` | 종목 마스터 자동 갱신 주기 |
+| `TOSS_SYMBOL_MARKETS` | `KRX,NASDAQ,NYSE,AMEX` | 종목 마스터 수집 대상 |
+| `TOSS_LOG_LEVEL` | `INFO` | 로그 레벨 |
+
+호출량은 토스가 공개한 그룹별 초당 한도(시세 10회, 차트 5회, 종목 5회, 시장정보 3회)에 맞춰
+클라이언트에서 미리 조절합니다. 429 를 받아 재시도하는 것보다 싸기 때문입니다.
+
+---
+
+## 5. 플러그인 없이 쓰기
+
+MCP 서버 단독으로도 등록할 수 있습니다. 소스를 직접 고칠 때 이 방식이 편합니다.
+
+```powershell
+git clone https://github.com/jaywapp/toss-readonly-mcp.git toss-mcp
+cd toss-mcp
+uv sync
+copy .env.example .env    # client_id / client_secret 채우기
+
+claude mcp add --scope user toss -- uv --directory <절대경로>\toss-mcp run toss-mcp
+```
+
+이때는 자격증명을 `.env` 에서 읽습니다. 환경변수가 있으면 그쪽이 우선합니다.
+`.env` 는 `.gitignore` 에 있으니 커밋되지 않습니다.
+
+### 개발
 
 ```powershell
 uv run pytest              # 네트워크를 타지 않는 전체 스위트
-uv run pytest -m smoke     # 실제 API 호출 (자격증명 필요)
+uv run pytest -m smoke     # 실제 API 호출 (자격증명 + 허용 IP 등록 필요)
 ```
+
+---
 
 ## 문서
 
 - 설계: `docs/superpowers/specs/2026-08-04-toss-mcp-design.md`
 - 구현 계획: `docs/superpowers/plans/2026-08-04-toss-mcp.md`
+- 토스 Open API 개요: <https://openapi.tossinvest.com/openapi-docs/overview.md>
 - 토스 OpenAPI 스펙: <https://openapi.tossinvest.com/openapi-docs/latest/openapi.json> (v1.2.9 기준)
+
+## 라이선스
+
+MIT

@@ -1,0 +1,26 @@
+{
+  "name": "toss-readonly-mcp",
+  "description": "토스증권 Open API 읽기 전용 MCP 플러그인",
+  "owner": {
+    "name": "jaywapp"
+  },
+  "plugins": [
+    {
+      "name": "toss-mcp",
+      "source": "./",
+      "description": "토스증권 Open API 를 읽기 전용 MCP 도구로 노출한다. 국내·미국 주식의 시세, 종목 정보, 환율·장 운영 시간, 랭킹·지표를 조회한다.",
+      "author": {
+        "name": "jaywapp"
+      },
+      "license": "MIT",
+      "keywords": [
+        "mcp",
+        "toss",
+        "stock",
+        "market-data",
+        "korea",
+        "read-only"
+      ]
+    }
+  ]
+}

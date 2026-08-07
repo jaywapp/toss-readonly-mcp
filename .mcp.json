@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "toss": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "--directory",
+        "${CLAUDE_PLUGIN_ROOT}",
+        "run",
+        "toss-mcp"
+      ],
+      "env": {
+        "TOSS_CLIENT_ID": "${user_config.client_id}",
+        "TOSS_CLIENT_SECRET": "${user_config.client_secret}",
+        "UV_PROJECT_ENVIRONMENT": "${CLAUDE_PLUGIN_DATA}/venv"
+      }
+    }
+  }
+}
