@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import math
 import random
 from collections.abc import Awaitable, Callable
 from typing import Any
@@ -100,9 +101,12 @@ def _retry_delay(response: httpx.Response, attempt: int) -> float:
     header = response.headers.get("Retry-After")
     if header:
         try:
-            return float(header)
+            delay = float(header)
+            if math.isfinite(delay) and delay >= 0:
+                return delay
         except ValueError:
             pass
+        logger.warning("invalid Retry-After header; using exponential backoff")
     return (2**attempt) * (1.0 + random.random())
 
 

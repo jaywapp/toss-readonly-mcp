@@ -115,5 +115,5 @@ def _safe_json(response: httpx.Response):
 def _coerce_int(value: object, default: int) -> int:
     try:
         return int(value)  # type: ignore[arg-type]
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return default

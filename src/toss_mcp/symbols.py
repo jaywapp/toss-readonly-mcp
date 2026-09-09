@@ -12,7 +12,8 @@ import logging
 import re
 import sqlite3
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
@@ -91,10 +92,10 @@ class SymbolStore:
         market: str | None = None,
         limit: int = 10,
     ) -> list[SymbolRecord]:
-        await self._ensure_loaded()
         needle = query.strip()
         if not needle:
             return []
+        await self._ensure_loaded()
 
         rows = self._load_all(market)
         return _rank(rows, needle)[:limit]
@@ -174,20 +175,29 @@ class SymbolStore:
 
     # -- storage ------------------------------------------------------------
 
-    def _connect(self) -> sqlite3.Connection:
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
         self._settings.cache_dir.mkdir(parents=True, exist_ok=True)
         conn = sqlite3.connect(self._db_path)
-        conn.execute(
-            """CREATE TABLE IF NOT EXISTS symbols (
+        try:
+            with conn:
+                conn.execute(
+                    """CREATE TABLE IF NOT EXISTS symbols (
                    symbol TEXT PRIMARY KEY,
                    name TEXT NOT NULL,
                    english_name TEXT,
                    market TEXT NOT NULL,
                    updated_at REAL NOT NULL
                )"""
-        )
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_symbols_name ON symbols(name)")
-        return conn
+                )
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_symbols_name ON symbols(name)")
+                conn.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_symbols_upper_symbol ON symbols(UPPER(symbol))"
+                )
+                yield conn
+        finally:
+            # SQLite's transaction context does not close the connection itself.
+            conn.close()
 
     def _write(self, records: list[SymbolRecord]) -> None:
         now = time.time()
@@ -195,7 +205,7 @@ class SymbolStore:
             conn.execute("DELETE FROM symbols")
             conn.executemany(
                 "INSERT OR REPLACE INTO symbols VALUES (?, ?, ?, ?, ?)",
-                [(r.symbol, r.name, r.english_name, r.market, now) for r in records],
+                ((r.symbol, r.name, r.english_name, r.market, now) for r in records),
             )
 
     def _load_all(self, market: str | None) -> list[SymbolRecord]:
